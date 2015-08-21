@@ -23,6 +23,17 @@ import (
     "log"
 )
 
+//http://stackoverflow.com/questions/19965795/go-golang-write-log-to-file
+func outputLog(s string){
+    f, err := os.OpenFile("logfile.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
+
+    log.SetOutput(f)
+    log.Println(s)
+}
 //http://stackoverflow.com/questions/9996767/showing-custom-404-error-page-with-standard-http-package
 func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
     w.WriteHeader(status)
@@ -44,6 +55,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     targetURL := r.URL.Query()["url"][0]
     u, err := url.Parse(targetURL)
     if err != nil {
+        outputLog(err.Error())
         panic(err)
         errorHandler(w,r,http.StatusNotFound)
         return;
@@ -52,6 +64,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 //    fmt.Println(u.User.Username())
     fmt.Println(host)
     fmt.Println(port)
+    outputLog("ACCESS:"+targetURL)
     req, _:= http.NewRequest("GET", targetURL, nil)
     
   /*
@@ -69,12 +82,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
         fmt.Println(os.Getenv("HOME"))
         dll, err := syscall.LoadDLL("firefoxdecrypt.dll")
         if err != nil {
+            outputLog(err.Error())
             log.Fatal(err)
         }
         defer dll.Release()
 
         proc, err := dll.FindProc("getAllAuthData")
         if err != nil {
+            outputLog(err.Error())
             log.Fatal(err)
         }
 
@@ -126,8 +141,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
     req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:38.0) Gecko/20100101 Firefox/38.0")
     
     
-    res, _ := client.Do(req)
-    body, _ := ioutil.ReadAll(res.Body)
+    res, err := client.Do(req)
+    if err != nil {
+        outputLog(err.Error())
+        log.Fatal(err)
+        return
+    }
+    
+    body, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        outputLog(err.Error())
+        log.Fatal(err)
+        return
+    }
     defer res.Body.Close()
 //    println(string(body))
     //http://qiita.com/futoase/items/ea86b750bbb36d7d859a
